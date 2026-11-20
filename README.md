@@ -5,7 +5,7 @@ App web (español, sin login) para registrar mantenimiento y repuestos del vehí
 ## Stack
 
 - **Backend:** Flask (MVC: `models` / `controllers` / `services` + templates)
-- **DB:** PostgreSQL vía `DATABASE_URL` (**Render Postgres** en producción). Sin secreto → **SQLite** local en `data/repuestos.db`. Arranca vacío (sin seed).
+- **DB:** PostgreSQL vía `DATABASE_URL` (**Neon** en producción). Sin secreto → **SQLite** local en `data/repuestos.db`. Arranca vacío (sin seed).
 - **Frontend:** plantillas Jinja + CSS/JS estáticos
 
 ## Ejecutar en local
@@ -32,7 +32,7 @@ gunicorn -b 127.0.0.1:5000 wsgi:app
 | Entorno | Comportamiento |
 |--------|----------------|
 | Sin `DATABASE_URL` | SQLite en `data/repuestos.db` (vacío; sin seed) |
-| Con `DATABASE_URL` | PostgreSQL (Render u otro). Migraciones en `migrations/*.sql` |
+| Con `DATABASE_URL` | PostgreSQL (Neon u otro). Migraciones en `migrations/*.sql` |
 
 Migraciones (idempotentes):
 
@@ -40,13 +40,15 @@ Migraciones (idempotentes):
 DATABASE_URL="postgresql://..." python scripts/migrate.py
 ```
 
+`postgres://` y `postgresql://` se normalizan a `postgresql+psycopg://` en `app/config.py`.
+
 ### Borrar datos demo existentes (una sola vez)
 
-Si la DB de Render aún tiene el Toyota Corolla / mantenimientos de ejemplo (de un deploy anterior con seed), borrarlos **una vez**:
+Si la DB aún tiene el Toyota Corolla / mantenimientos de ejemplo (de un deploy anterior con seed), borrarlos **una vez**:
 
-**Opción A — SQL en el dashboard de Render**
+**Opción A — SQL en Neon**
 
-1. [dashboard.render.com](https://dashboard.render.com) → servicio **Postgres** `repuestos-auto-db` → **Connect** / query o `psql`.
+1. [console.neon.tech](https://console.neon.tech) → tu proyecto → **SQL Editor**.
 2. Ejecutar el contenido de `scripts/clear_demo_data.sql` (DELETE de `maintenance_records` + reset de `vehicle_settings`).
 
 **Opción B — script (local o Shell de Render)**
@@ -74,18 +76,42 @@ Para publicar en Cursor Apps (opcional): `cursor-app.json` declara `"database": 
 
 Fecha, tipo de pieza/mantenimiento, precio de herramientas/repuestos, precio de mano de obra, si es original (sí/no), fecha esperada del próximo cambio (+ odómetro y notas opcionales).
 
-## Deploy en Render (público, recomendado)
+## Deploy en Render + Neon (público, recomendado)
 
-Blueprint en `render.yaml`: web service free + Postgres free, `gunicorn` en `0.0.0.0:$PORT`, migraciones en el `buildCommand`, `DATABASE_URL` inyectada desde la DB del Blueprint (`postgres://` se normaliza a `postgresql+psycopg://` en `app/config.py`).
+Blueprint en `render.yaml`: **solo** web service free (`gunicorn` en `0.0.0.0:$PORT`). La DB es **Neon** (externa). Pegá `DATABASE_URL` en el dashboard de Render. Migraciones corren en el `buildCommand`.
 
-### Una sola vez en el dashboard
+### Neon — crear la base (una sola vez)
 
-1. Creá cuenta en [render.com](https://render.com) e iniciá sesión con GitHub.
-2. **New → Blueprint** → conectá el repo `mgonzalesbe/repuestos-auto` (rama `main`).
-3. Revisá el preview del Blueprint (`repuestos-auto` + `repuestos-auto-db`) → **Apply**.
-4. Cuando el deploy termine, la URL pública es `https://repuestos-auto.onrender.com` (o la que muestre el servicio).
+1. Abrí [console.neon.tech](https://console.neon.tech) → **Sign up** (GitHub está bien).
+2. **Create a project** (Free plan). Región cercana (p. ej. US West / Oregon si el web está en Oregon).
+3. Cuando el proyecto esté listo → **Dashboard** → **Connection details**.
+4. Copiá el connection string **pooled** (host tipo `….pooler.neon.tech`, a veces etiquetado *Pooled connection*).  
+   Ejemplo de forma: `postgresql://USER:PASSWORD@ep-….pooler.neon.tech/neondb?sslmode=require`  
+   (La app convierte `postgres://` / `postgresql://` a `postgresql+psycopg://` sola.)
 
-No hace falta setear `DATABASE_URL` a mano: el Blueprint la enlaza. `SECRET_KEY` se genera sola. Free web se duerme tras inactividad (~15 s cold start).
+### Render — pegar `DATABASE_URL` y quitar la DB vieja
+
+1. [dashboard.render.com](https://dashboard.render.com) → servicio web **`repuestos-auto`**.
+2. **Environment** → agregá o editá:
+   - Key: `DATABASE_URL`
+   - Value: la URI pooled de Neon (pegá tal cual)
+3. **Save Changes** (dispara redeploy; el `buildCommand` corre `python scripts/migrate.py`).
+4. Si todavía existe el Postgres del Blueprint **`repuestos-auto-db`**:
+   - Abrí ese servicio Postgres → **Settings** → **Delete Database** (o desenlazalo del web).  
+   - Confirmá que el web **ya no** tenga un link `fromDatabase` a Render Postgres; solo la env var manual.
+5. Cuando el deploy esté verde: https://repuestos-auto.onrender.com
+
+### Si hace falta wipe de seed
+
+Tras migrar a Neon (DB nueva = vacía). Si reutilizás una DB con demos: Neon **SQL Editor** → `scripts/clear_demo_data.sql`, o `CONFIRM=YES python scripts/clear_demo_data.py` con `DATABASE_URL` apuntando a Neon.
+
+### Blueprint desde cero (opcional)
+
+1. Render → **New → Blueprint** → repo `mgonzalesbe/repuestos-auto` (rama `main`).
+2. Apply. El Blueprint **no** crea Postgres.
+3. Antes o justo después del primer deploy: pegá `DATABASE_URL` (Neon) en Environment. Sin eso el build/arranque falla a propósito.
+
+`SECRET_KEY` se genera sola. Free web se duerme tras inactividad (~15–50 s cold start). Neon Free también puede suspender compute tras inactividad.
 
 ## Publish (Cursor Apps — opcional / privado)
 
