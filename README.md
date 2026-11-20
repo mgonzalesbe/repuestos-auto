@@ -57,7 +57,20 @@ DATABASE_URL="postgresql://..." python scripts/migrate.py
 
 Fecha, tipo de pieza/mantenimiento, precio de herramientas/repuestos, precio de mano de obra, si es original (sí/no), fecha esperada del próximo cambio (+ odómetro y notas opcionales).
 
-## Publish (Cursor)
+## Deploy en Render (público, recomendado)
+
+Blueprint en `render.yaml`: web service free + Postgres free, `gunicorn` en `0.0.0.0:$PORT`, migraciones en el `buildCommand`, `DATABASE_URL` inyectada desde la DB del Blueprint (`postgres://` se normaliza a `postgresql+psycopg://` en `app/config.py`).
+
+### Una sola vez en el dashboard
+
+1. Creá cuenta en [render.com](https://render.com) e iniciá sesión con GitHub.
+2. **New → Blueprint** → conectá el repo `mgonzalesbe/repuestos-auto` (rama `main`).
+3. Revisá el preview del Blueprint (`repuestos-auto` + `repuestos-auto-db`) → **Apply**.
+4. Cuando el deploy termine, la URL pública es `https://repuestos-auto.onrender.com` (o la que muestre el servicio).
+
+No hace falta setear `DATABASE_URL` a mano: el Blueprint la enlaza. `SECRET_KEY` se genera sola. Free web se duerme tras inactividad (~15 s cold start).
+
+## Publish (Cursor Apps — opcional / privado)
 
 1. Arrancar el servidor local.
 2. `publish-app` con `project_dir` `.` y `preview_url` `http://127.0.0.1:5000`.
