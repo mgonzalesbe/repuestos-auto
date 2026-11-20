@@ -6,11 +6,11 @@ Requires CONFIRM=YES so it cannot run by accident (e.g. on deploy).
 Usage (local SQLite or any DATABASE_URL):
   CONFIRM=YES python scripts/clear_demo_data.py
 
-On Render (if Shell is available on the web service):
+On Render (if Shell is available on the web service, with Neon DATABASE_URL set):
   CONFIRM=YES python scripts/clear_demo_data.py
 
 If you cannot reach the DB from here, run the SQL in
-scripts/clear_demo_data.sql via the Render Postgres dashboard instead.
+scripts/clear_demo_data.sql in the Neon SQL Editor instead.
 """
 
 from __future__ import annotations

@@ -1,6 +1,6 @@
--- One-shot wipe of demo / sample data in RepuestosAuto (Render Postgres).
+-- One-shot wipe of demo / sample data in RepuestosAuto (Neon / any Postgres).
 -- Safe for schema: does NOT drop tables or schema_migrations.
--- Run once in the Render dashboard → Postgres → Connect / Query (or psql).
+-- Run once in the Neon SQL Editor (or psql with DATABASE_URL).
 -- After this, the app starts empty (no Toyota Corolla, no fake mantenimientos).
 
 BEGIN;

@@ -1,6 +1,9 @@
-# RepuestosAuto — Render Blueprint
+# RepuestosAuto — Render Blueprint (web only)
 # Dashboard: New → Blueprint → connect this GitHub repo → apply.
+# Postgres is external (Neon). Paste DATABASE_URL in the Render dashboard
+# (Environment → DATABASE_URL). Prefer Neon's pooled connection string.
 # Free web has no preDeployCommand; migrations run in buildCommand (idempotent).
+# postgres:// / postgresql:// are normalized to postgresql+psycopg:// in app/config.py.
 
 services:
   - type: web
@@ -18,15 +21,6 @@ services:
         value: "3.12.8"
       - key: SECRET_KEY
         generateValue: true
+      # Set manually in Render → Environment (Neon URI). Not linked to a Render DB.
       - key: DATABASE_URL
-        fromDatabase:
-          name: repuestos-auto-db
-          property: connectionString
-
-databases:
-  - name: repuestos-auto-db
-    plan: free
-    databaseName: repuestos
-    user: repuestos
-    postgresMajorVersion: "16"
-    ipAllowList: [] # Internal access only (web service in same region)
+        sync: false
