@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% block title %}{% if action == 'edit' %}Editar{% else %}Nuevo{% endif %} · {{ brand }}{% endblock %}
+{% block content %}
+<section class="page-head reveal">
+  <div>
+    <h1>{% if action == 'edit' %}Editar mantenimiento{% else %}Nuevo mantenimiento{% endif %}</h1>
+    <p class="lede">Fecha, tipo, costos, si es original y próximo cambio.</p>
+  </div>
+  <a class="btn btn-ghost" href="{{ url_for('maintenance.list_view') }}">Volver</a>
+</section>
+
+<section class="form-panel reveal" style="--delay:80ms">
+  <form method="post" class="record-form" action="{% if action == 'edit' %}{{ url_for('maintenance.update', record_id=record.id) }}{% else %}{{ url_for('maintenance.create') }}{% endif %}">
+    <label>
+      Fecha del servicio
+      <input type="date" name="service_date" required value="{{ record.service_date.isoformat() if record else '' }}">
+    </label>
+    <label>
+      Tipo de pieza / mantenimiento
+      <input type="text" name="part_type" maxlength="200" required placeholder="Ej. Cambio de aceite, pastillas de freno" value="{{ record.part_type if record else '' }}">
+    </label>
+    <div class="form-row">
+      <label>
+        Precio de herramientas / repuestos
+        <input type="number" name="parts_price" min="0" step="0.01" required value="{{ record.parts_price if record else '0' }}">
+      </label>
+      <label>
+        Precio de mano de obra
+        <input type="number" name="labor_price" min="0" step="0.01" required value="{{ record.labor_price if record else '0' }}">
+      </label>
+    </div>
+    <fieldset class="choice">
+      <legend>¿La pieza es original?</legend>
+      <label class="radio">
+        <input type="radio" name="is_original" value="1" {% if not record or record.is_original %}checked{% endif %}>
+        Sí
+      </label>
+      <label class="radio">
+        <input type="radio" name="is_original" value="0" {% if record and not record.is_original %}checked{% endif %}>
+        No
+      </label>
+    </fieldset>
+    <div class="form-row">
+      <label>
+        Fecha esperada del próximo cambio
+        <input type="date" name="next_change_date" value="{{ record.next_change_date.isoformat() if record and record.next_change_date else '' }}">
+      </label>
+      <label>
+        Odómetro al momento (km)
+        <input type="number" name="odometer_km" min="0" step="1" value="{{ record.odometer_km if record and record.odometer_km is not none else '' }}">
+      </label>
+    </div>
+    <label>
+      Notas (opcional)
+      <textarea name="notes" rows="3" placeholder="Detalle del trabajo, marca, taller…">{{ record.notes if record and record.notes else '' }}</textarea>
+    </label>
+    <div class="form-actions">
+      <button class="btn btn-primary" type="submit">{% if action == 'edit' %}Guardar cambios{% else %}Guardar registro{% endif %}</button>
+      <a class="btn btn-ghost" href="{{ url_for('maintenance.list_view') }}">Cancelar</a>
+    </div>
+  </form>
+</section>
+{% endblock %}

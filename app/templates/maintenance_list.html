@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% block title %}Historial · {{ brand }}{% endblock %}
+{% block content %}
+<section class="page-head reveal">
+  <div>
+    <h1>Historial de mantenimiento</h1>
+    <p class="lede">{{ summary.count }} registros · total ${{ "%.2f"|format(summary.total) }}</p>
+  </div>
+  <a class="btn btn-primary" href="{{ url_for('maintenance.new_form') }}">+ Nuevo registro</a>
+</section>
+
+<section class="recent reveal" style="--delay:80ms">
+  {% if records %}
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Fecha</th>
+            <th>Tipo / pieza</th>
+            <th>Repuestos</th>
+            <th>Mano de obra</th>
+            <th>Total</th>
+            <th>Original</th>
+            <th>Próximo cambio</th>
+            <th>Km</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for r in records %}
+            <tr>
+              <td>{{ r.service_date.strftime('%d/%m/%Y') }}</td>
+              <td>
+                <strong>{{ r.part_type }}</strong>
+                {% if r.notes %}<div class="row-note">{{ r.notes }}</div>{% endif %}
+              </td>
+              <td>${{ "%.2f"|format(r.parts_price) }}</td>
+              <td>${{ "%.2f"|format(r.labor_price) }}</td>
+              <td>${{ "%.2f"|format(r.total_price) }}</td>
+              <td>
+                <span class="pill {% if r.is_original %}pill-yes{% else %}pill-no{% endif %}">
+                  {% if r.is_original %}Sí{% else %}No{% endif %}
+                </span>
+              </td>
+              <td>{% if r.next_change_date %}{{ r.next_change_date.strftime('%d/%m/%Y') }}{% else %}—{% endif %}</td>
+              <td>{% if r.odometer_km is not none %}{{ "{:,}".format(r.odometer_km).replace(",", ".") }}{% else %}—{% endif %}</td>
+              <td class="actions">
+                <a href="{{ url_for('maintenance.edit_form', record_id=r.id) }}">Editar</a>
+                <form method="post" action="{{ url_for('maintenance.delete', record_id=r.id) }}" onsubmit="return confirm('¿Eliminar este registro?');">
+                  <button type="submit" class="link-danger">Eliminar</button>
+                </form>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% else %}
+    <p class="empty">El historial está vacío. Agrega un mantenimiento para verlo aquí.</p>
+  {% endif %}
+</section>
+{% endblock %}

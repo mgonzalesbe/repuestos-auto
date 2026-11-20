@@ -1,0 +1,130 @@
+{% extends "base.html" %}
+{% block title %}Panel · {{ brand }}{% endblock %}
+{% block content %}
+<section class="hero reveal">
+  <p class="brand-hero">{{ brand }}</p>
+  <h1>Control de piezas y mantenimiento</h1>
+  <p class="lede">Registra cambios, costos y el próximo servicio. El aceite se recuerda cada {{ oil_interval_km }} km.</p>
+  <div class="cta-row">
+    <a class="btn btn-primary" href="{{ url_for('maintenance.new_form') }}">Registrar mantenimiento</a>
+    <a class="btn btn-ghost" href="#aceite">Ver aceite</a>
+  </div>
+</section>
+
+<section id="aceite" class="oil-panel reveal" style="--delay:80ms">
+  <div class="oil-head">
+    <div>
+      <h2>Recordatorio de aceite</h2>
+      <p class="muted">{{ oil.vehicle_label }} · cada {{ oil.interval_km }} km</p>
+    </div>
+    <span class="status status-{{ 'overdue' if oil.overdue else ('soon' if oil.remaining_km <= 500 else 'ok') }}">
+      {{ oil.status_label }}
+    </span>
+  </div>
+
+  <div class="oil-metrics">
+    <div class="metric">
+      <span class="metric-label">Odómetro actual</span>
+      <strong>{{ "{:,}".format(oil.current_odometer).replace(",", ".") }} km</strong>
+    </div>
+    <div class="metric">
+      <span class="metric-label">Último cambio</span>
+      <strong>{{ "{:,}".format(oil.last_oil_change_km).replace(",", ".") }} km</strong>
+    </div>
+    <div class="metric">
+      <span class="metric-label">Próximo a</span>
+      <strong>{{ "{:,}".format(oil.due_at_km).replace(",", "." ) }} km</strong>
+    </div>
+    <div class="metric highlight">
+      <span class="metric-label">{% if oil.overdue %}Kilómetros de retraso{% else %}Kilómetros restantes{% endif %}</span>
+      <strong>{{ "{:,}".format(oil.remaining_km|abs).replace(",", ".") }} km</strong>
+    </div>
+  </div>
+
+  <div class="progress" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="{{ oil_progress|int }}">
+    <div class="progress-bar {% if oil.overdue %}is-overdue{% elif oil.remaining_km <= 500 %}is-soon{% endif %}" style="--target: {{ oil_progress }}%"></div>
+  </div>
+
+  <form class="oil-form" method="post" action="{{ url_for('dashboard.update_odometer') }}">
+    <label>
+      Vehículo
+      <input type="text" name="vehicle_label" value="{{ oil.vehicle_label }}" maxlength="120" required>
+    </label>
+    <label>
+      Odómetro actual (km)
+      <input type="number" name="current_odometer" min="0" step="1" value="{{ oil.current_odometer }}" required>
+    </label>
+    <label>
+      Km del último cambio de aceite
+      <input type="number" name="last_oil_change_km" min="0" step="1" value="{{ oil.last_oil_change_km }}" required>
+    </label>
+    <button class="btn btn-primary" type="submit">Actualizar odómetro</button>
+  </form>
+</section>
+
+<section class="split reveal" style="--delay:140ms">
+  <div>
+    <h2>Resumen</h2>
+    <p class="muted">{{ summary.count }} registros en el historial</p>
+    <ul class="summary-list">
+      <li><span>Repuestos / herramientas</span><strong>${{ "%.2f"|format(summary.parts) }}</strong></li>
+      <li><span>Mano de obra</span><strong>${{ "%.2f"|format(summary.labor) }}</strong></li>
+      <li class="total"><span>Total invertido</span><strong>${{ "%.2f"|format(summary.total) }}</strong></li>
+    </ul>
+  </div>
+  <div>
+    <h2>Próximos cambios</h2>
+    <p class="muted">Según fecha estimada</p>
+    {% if upcoming %}
+      <ul class="upcoming-list">
+        {% for r in upcoming %}
+          <li>
+            <span class="when">{{ r.next_change_date.strftime('%d/%m/%Y') }}</span>
+            <span class="what">{{ r.part_type }}</span>
+          </li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <p class="empty">Aún no hay fechas de próximo cambio.</p>
+    {% endif %}
+  </div>
+</section>
+
+<section class="recent reveal" style="--delay:200ms">
+  <div class="section-head">
+    <h2>Últimos registros</h2>
+    <a href="{{ url_for('maintenance.list_view') }}">Ver todo</a>
+  </div>
+  {% if records %}
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Fecha</th>
+            <th>Tipo</th>
+            <th>Repuestos</th>
+            <th>Mano de obra</th>
+            <th>Original</th>
+            <th>Próximo</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for r in records %}
+            <tr>
+              <td>{{ r.service_date.strftime('%d/%m/%Y') }}</td>
+              <td>{{ r.part_type }}</td>
+              <td>${{ "%.2f"|format(r.parts_price) }}</td>
+              <td>${{ "%.2f"|format(r.labor_price) }}</td>
+              <td>{% if r.is_original %}Sí{% else %}No{% endif %}</td>
+              <td>{% if r.next_change_date %}{{ r.next_change_date.strftime('%d/%m/%Y') }}{% else %}—{% endif %}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% else %}
+    <p class="empty">No hay registros todavía. Crea el primero para empezar.</p>
+  {% endif %}
+  <p class="db-hint muted">Persistencia: {{ db_mode }}</p>
+</section>
+{% endblock %}
