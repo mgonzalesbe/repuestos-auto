@@ -2,7 +2,6 @@ from flask import Blueprint, flash, redirect, render_template, request, url_for
 
 from app.db import db_mode_label, session_scope
 from app.services import maintenance_service, oil_service
-from app.services.seed import seed_if_empty
 
 bp = Blueprint("dashboard", __name__)
 
@@ -10,7 +9,6 @@ bp = Blueprint("dashboard", __name__)
 @bp.get("/")
 def index():
     with session_scope() as session:
-        seed_if_empty(session)
         settings = oil_service.get_or_create_settings(session)
         oil = oil_service.compute_oil_reminder(settings)
         records = maintenance_service.list_records(session)

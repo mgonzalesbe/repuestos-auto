@@ -5,7 +5,7 @@ App web (español, sin login) para registrar mantenimiento y repuestos del vehí
 ## Stack
 
 - **Backend:** Flask (MVC: `models` / `controllers` / `services` + templates)
-- **DB:** PostgreSQL vía `DATABASE_URL` (Neon / Cursor Apps Postgres). Sin secreto → **SQLite** local en `data/repuestos.db`
+- **DB:** PostgreSQL vía `DATABASE_URL` (**Render Postgres** en producción). Sin secreto → **SQLite** local en `data/repuestos.db`. Arranca vacío (sin seed).
 - **Frontend:** plantillas Jinja + CSS/JS estáticos
 
 ## Ejecutar en local
@@ -31,16 +31,33 @@ gunicorn -b 127.0.0.1:5000 wsgi:app
 
 | Entorno | Comportamiento |
 |--------|----------------|
-| Sin `DATABASE_URL` | SQLite en `data/repuestos.db` (datos de ejemplo al primer arranque) |
-| Con `DATABASE_URL` | PostgreSQL (Neon u otro). Migraciones en `migrations/*.sql` |
+| Sin `DATABASE_URL` | SQLite en `data/repuestos.db` (vacío; sin seed) |
+| Con `DATABASE_URL` | PostgreSQL (Render u otro). Migraciones en `migrations/*.sql` |
 
-Para publicar en Cursor Apps: `cursor-app.json` declara `"database": "postgres"`. La plataforma inyecta `DATABASE_URL`; **no** hace falta (ni se debe) bindear ese secreto a mano.
-
-Migración opcional con Postgres:
+Migraciones (idempotentes):
 
 ```bash
 DATABASE_URL="postgresql://..." python scripts/migrate.py
 ```
+
+### Borrar datos demo existentes (una sola vez)
+
+Si la DB de Render aún tiene el Toyota Corolla / mantenimientos de ejemplo (de un deploy anterior con seed), borrarlos **una vez**:
+
+**Opción A — SQL en el dashboard de Render**
+
+1. [dashboard.render.com](https://dashboard.render.com) → servicio **Postgres** `repuestos-auto-db` → **Connect** / query o `psql`.
+2. Ejecutar el contenido de `scripts/clear_demo_data.sql` (DELETE de `maintenance_records` + reset de `vehicle_settings`).
+
+**Opción B — script (local o Shell de Render)**
+
+```bash
+CONFIRM=YES python scripts/clear_demo_data.py
+```
+
+El script exige `CONFIRM=YES` y **no** se corre en el deploy. No elimina tablas ni migraciones.
+
+Para publicar en Cursor Apps (opcional): `cursor-app.json` declara `"database": "postgres"`. **No** bindear `DATABASE_URL` a mano en Cursor.
 
 ## Rutas principales
 
